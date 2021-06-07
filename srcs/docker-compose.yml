@@ -1,0 +1,58 @@
+version: "3.3"
+
+networks:
+    docker-network:
+        driver: bridge
+
+services:
+    nginx:
+        build: ./requirements/nginx
+        image: nginx
+        container_name: nginx
+        depends_on:
+            - wordpress
+        restart: always
+        hostname: $DOMAIN_NAME
+        domainname: $DOMAIN_NAME
+        ports:
+            - 443:443
+        extra_hosts:
+            - "$DOMAIN_NAME:127.0.0.1"
+        networks:
+            docker-network:
+                aliases:
+                    - $DOMAIN_NAME
+        volumes:
+            - type: bind
+              source: /home/jiglesia/data/wordpress
+              target: /www/
+    wordpress:
+        build: ./requirements/wordpress
+        image: wordpress
+        container_name: wordpress
+        restart: always
+        env_file: .env
+        environment:
+            - WP_DB_NAME=$DATABASE
+            - WP_DB_USER=$DB_USER
+            - WP_DB_PASS=$DB_PASSWORD
+        depends_on:
+            - mariadb
+        networks:
+            - docker-network
+        volumes:
+            - type: bind
+              source: /home/jiglesia/data/wordpress
+              target: /var/www/html/
+    mariadb:
+        build: ./requirements/mariadb
+        image: mariadb
+        container_name: mariadb
+        restart: always
+        env_file: .env
+        networks:
+            - docker-network
+        volumes:
+            - type: bind
+              source: /home/jiglesia/data/mariadb
+              target: /var/lib/mysql
